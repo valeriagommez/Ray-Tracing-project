@@ -18,48 +18,58 @@ class Sphere(Geometry):
         self.radius = radius
 
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        
+
         # TODO: Create intersect code for Sphere
         # Find t
-        p = ray.origin
-        d = ray.direction
-        a = glm.dot(d, d)
-        b = 2 * glm.dot(d, p)
-        c = glm.dot(p, p) - self.radius * self.radius
+        # p = ray.origin
+        # d = ray.direction
+        # a = glm.dot(d, d)
+        # b = 2 * glm.dot(d, p)
+        # c = glm.dot(p, p) - self.radius * self.radius
+
+        p = ray.origin - self.center  # Vector from sphere center to ray origin
+        d = ray.direction             # Ray direction (assumed normalized or normalize it)
+
+        a = glm.dot(d, d)             # Should be 1 if d is normalized
+        b = 2 * glm.dot(d, p)         # Factor of 2 is important
+        c = glm.dot(p, p) - self.radius * self.radius  # Sphere equation
 
         discriminant = b*b - 4 * a * c
 
+        print(f"self.center : {self.center}")
+        print(f"Ray Origin (p) : {p}")
+        print(f"Ray Direction (d) : {d}")
+        print(f"a : {a}")
+        print(f"b : {b}")
+        print(f"c : {c}")
+        print("discriminant : ", discriminant)
+
         if discriminant < 0 :
-            intersection = hc.Intersection(float("inf"), None, None, None)
+            return hc.Intersection(float("inf"), None, None, None)
     
+        t1 = (-b + glm.sqrt(discriminant)) / (2*a)
+        t2 = (-b - glm.sqrt(discriminant)) / (2*a)
+
+        print("t1 : ", t1)
+        print("t2 : ",t2)
+
+        if t1 > 0 : 
+            t = t1
         else : 
-            t1 = (-b + glm.sqrt(discriminant)) / (2*a)
-            t2 = (-b - glm.sqrt(discriminant)) / (2*a)
+            t = t2
 
-            if t1 > 0 : 
-                t = t1
-            else : 
-                t = t2
+        if t <=0 : 
+            return hc.Intersection(float("inf"), None, None, None)
 
-            if t <=0 : 
-                intersection = hc.Intersection(float("inf"), None, None, None)
+        # Find the position of the intersection
+        position = p + t * d
+        
+        # Find the normal (n)
+        n = glm.normalize(position) # The normal equals to the vector from the origin to the point of intersection
+        
+        # Find the material of the object at that position
 
-            # print(t1)
-            # print(t2)
-
-            # Find the position of the intersection
-            position = p + t * d
-            
-            # Find the normal (n)
-            n = glm.normalize(position) # The normal equals to the vector from the origin to the point of intersection
-            
-            # Find the material of the object at that position
-
-            intersection = hc.Intersection(t1, n, position, self.materials[0])
-
-        self.intersect = intersection
-
-        return intersect
+        return hc.Intersection(t1, n, position, self.materials[0])
 
 class Plane(Geometry):
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], point: glm.vec3, normal: glm.vec3):
