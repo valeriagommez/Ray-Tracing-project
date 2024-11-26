@@ -36,13 +36,13 @@ class Sphere(Geometry):
 
         discriminant = b*b - 4 * a * c
 
-        print(f"self.center : {self.center}")
-        print(f"Ray Origin (p) : {p}")
-        print(f"Ray Direction (d) : {d}")
-        print(f"a : {a}")
-        print(f"b : {b}")
-        print(f"c : {c}")
-        print("discriminant : ", discriminant)
+        # print(f"self.center : {self.center}")
+        # print(f"Ray Origin (p) : {p}")
+        # print(f"Ray Direction (d) : {d}")
+        # print(f"a : {a}")
+        # print(f"b : {b}")
+        # print(f"c : {c}")
+        # print("discriminant : ", discriminant)
 
         if discriminant < 0 :
             return hc.Intersection(float("inf"), None, None, None)
@@ -53,13 +53,18 @@ class Sphere(Geometry):
         print("t1 : ", t1)
         print("t2 : ",t2)
 
-        if t1 > 0 : 
+        if t1 > 0 and t2 > 0 :
+            t = min(t1, t2)
+        elif t1 > 0 : 
             t = t1
-        else : 
+            print("t1 was chosen!")
+        elif t2 > 0 : 
             t = t2
-
-        if t <=0 : 
+            print("t2 was chosen!")
+        else : 
             return hc.Intersection(float("inf"), None, None, None)
+
+        print("t : ", t)
 
         # Find the position of the intersection
         position = p + t * d
@@ -68,7 +73,6 @@ class Sphere(Geometry):
         n = glm.normalize(position) # The normal equals to the vector from the origin to the point of intersection
         
         # Find the material of the object at that position
-
         return hc.Intersection(t1, n, position, self.materials[0])
 
 class Plane(Geometry):
