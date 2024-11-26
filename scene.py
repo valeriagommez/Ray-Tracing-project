@@ -49,6 +49,10 @@ class Scene:
         u = glm.normalize(u)
         v = glm.cross(w, u)
 
+        print("w : ", w)
+        print("u : ", u)
+        print("v : ", v)
+
         for col in tqdm(range(self.width)):
             for row in range(self.height):
 
@@ -59,24 +63,36 @@ class Scene:
                 pixelX = ((col + 0.5)/self.width) * (right - left) + left
                 pixelY = ((row + 0.5)/self.height) * (top - bottom) + bottom
 
+                print("pixelX : ", pixelX)
+                print("pixelY : ", pixelY)
+
                 # Calculating the position in 3D of the pixel (in camera coordinates)
-                s = e + pixelX * u + pixelY * v - distance_to_plane
+                s = e + pixelX * u + pixelY * v - distance_to_plane * w
                 p = e
-                d = s - e
+                d = s - e   # goes from the eye to the pixel
+                d = glm.normalize(d)    # normalizing the direction vector
                 r = hc.Ray(p, d)
 
                 # TODO: Test for intersection with all objects
 
+                print(r.origin)
+                print(r.direction)
+
                 for obj in self.objects : 
-                    print(obj)
-                    intersection = obj.intersect(r, hc.Intersection(float("inf"), None, None, None))
+                    intersection = obj.intersect(r, hc.Intersection(float("inf"), None, (0,0,0), None))
+                    
+                    print(intersection.t)
+                    print(intersection.normal)
+                    print(intersection.position)
+                    print(intersection.mat)
+                    
                     if intersection.position != None :  # if there's an intersection found
                         colour = glm.vec3(1, 1, 1)  # color = white
                     else : 
                         colour = glm.vec3(0, 0, 0)  # color = black
 
                 # TODO: Perform shading computations on the intersection point
-
+ 
                 image[row, col, 0] = max(0.0, min(1.0, colour.x))
                 image[row, col, 1] = max(0.0, min(1.0, colour.y))
                 image[row, col, 2] = max(0.0, min(1.0, colour.z))
