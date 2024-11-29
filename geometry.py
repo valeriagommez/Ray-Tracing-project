@@ -27,11 +27,12 @@ class Sphere(Geometry):
         # b = 2 * glm.dot(d, p)
         # c = glm.dot(p, p) - self.radius * self.radius
 
-        p = ray.origin - self.center  # Vector from sphere center to ray origin
+        # p = ray.origin - self.center  # Vector from sphere center to ray origin
+        p = ray.origin                # Vector from sphere center to ray origin
         d = ray.direction             # Ray direction (assumed normalized or normalize it)
 
-        a = glm.dot(d, d)             # Should be 1 if d is normalized
-        b = 2 * glm.dot(d, p)         # Factor of 2 is important
+        a = glm.dot(d, d)             
+        b = 2 * glm.dot(d, p)         
         c = glm.dot(p, p) - self.radius * self.radius  # Sphere equation
 
         discriminant = b*b - 4 * a * c
@@ -50,27 +51,27 @@ class Sphere(Geometry):
         t1 = (-b + glm.sqrt(discriminant)) / (2*a)
         t2 = (-b - glm.sqrt(discriminant)) / (2*a)
 
-        print("t1 : ", t1)
-        print("t2 : ",t2)
+        # print("t1 : ", t1)
+        # print("t2 : ",t2)
 
         if t1 > 0 and t2 > 0 :
             t = min(t1, t2)
         elif t1 > 0 : 
             t = t1
-            print("t1 was chosen!")
+            # print("t1 was chosen!")
         elif t2 > 0 : 
             t = t2
-            print("t2 was chosen!")
+            # print("t2 was chosen!")
         else : 
             return hc.Intersection(float("inf"), None, None, None)
 
-        print("t : ", t)
+        # print("t : ", t)
 
         # Find the position of the intersection
         position = p + t * d
         
         # Find the normal (n)
-        n = glm.normalize(position) # The normal equals to the vector from the origin to the point of intersection
+        n = glm.normalize(position - self.center) # The normal equals to the vector from the origin to the point of intersection
         
         # Find the material of the object at that position
         return hc.Intersection(t1, n, position, self.materials[0])
