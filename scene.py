@@ -76,9 +76,20 @@ class Scene:
 
                 for obj in self.objects : 
                     intersection = obj.intersect(r, hc.Intersection(float("inf"), None, (0,0,0), None))
+                    
+                    # if obj.name == 'plane' : 
+                    #     print(intersection.t)
+                    #     # print(intersection.normal)
+                    #     print(intersection.position)
+                    #     print(intersection.mat)
+                    #     print()
 
                     # Comment this??
                     if intersection.position != None :  # if there's an intersection found
+                        print()
+                        print(obj.name) # prints out plane --> plane intersections are being registered
+                        print(intersection.position)
+
                         # colour = glm.vec3(1, 1, 1)  # color = white
 
                         # TODO: Perform shading computations on the intersection point
@@ -87,6 +98,7 @@ class Scene:
                         material = intersection.mat
 
                         # Attenuate the light intensity if it's a point light
+                        I = glm.vec3([0, 0, 0])
                         for light in self.lights : 
                             if light.type == "point" : 
                                 lightPosition = light.vector
@@ -96,9 +108,9 @@ class Scene:
                                 k_q = light.attenuation[0]
 
                                 attenuationFactor = 1 / (k_c + k_l * distance + k_q * distance * distance)
-                                I = attenuationFactor * light.colour
+                                I = I + attenuationFactor * light.colour
                             else : 
-                                I = light.colour # --> a vector with RGB components
+                                I = I + light.colour # --> a vector with RGB components
                         
 
                         ambientLight = self.ambient
@@ -140,8 +152,9 @@ class Scene:
                         # print("colour : ", colour)  # colour :  vec3(          0.1,          0.1,          0.1 ) --> only ambient
 
                     else : 
-                        # colour = glm.vec3(0, 0, 0)  # color = black
-                        colour = self.ambient
+                        colour = glm.vec3(0, 0, 0)  # color = black IN PLANE2 : EVERYTHING BUT SPHERE IS SHOWING UP AS BLACK
+                        # colour = glm.vec3(1, 1, 1)  # color = white
+                        # colour = self.ambient
                     
                 image[row, col, 0] = max(0.0, min(1.0, colour.x))
                 image[row, col, 1] = max(0.0, min(1.0, colour.y))
