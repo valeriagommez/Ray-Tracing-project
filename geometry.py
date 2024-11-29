@@ -83,8 +83,81 @@ class Plane(Geometry):
         self.normal = normal
 
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        pass
         # TODO: Create intersect code for Plane
+
+        p = ray.origin                # Vector from sphere center to ray origin
+        d = ray.direction             # Ray direction (assumed normalized or normalize it)
+
+        p0 = self.point
+        n = self.normal
+
+        A = n[0]
+        B = n[1]
+        C = n[2]
+        D = -( A*p0[0] + B*p0[1] + C*p0[2])
+
+        # print()
+        # print("A : ", A)
+        # print("B : ", B)
+        # print("C : ", C)
+        # print("D : ", D)
+        
+        denominator = A*d[0] + B*d[1] + C*d[2]
+
+        # print("denominator : ", denominator)
+        
+        if denominator == 0  :
+            return hc.Intersection(float("inf"), None, None, None)
+
+        t = -(A*p[0] + B*p[1] + C*p[2] + D) / denominator
+
+        if t < 0 : 
+            return hc.Intersection(float("inf"), None, None, None)
+        
+        position = p + t * d
+
+        # print("t : ", t)
+        # print("position : ", position)
+
+        if len(self.materials) == 2 :
+            # print("TWO MATERIALS")
+            truncX = int(position[0])
+            truncZ = int(position[2])
+            # print("truncX : ", truncX)
+            # print("truncZ : ", truncZ)
+
+            if ((position[0] > 0) and (position[2] > 0)) or ((position[0] < 0) and (position[2] < 0)) :
+                if ((truncX % 2 == 0) and (truncZ % 2 == 0)) or ((truncX % 2 != 0) and (truncZ % 2 != 0)):
+                # print("FIRST MATERIAL")
+                    # print(intersectionFound.t)
+                    # print(intersectionFound.normal)
+                    # print(intersectionFound.position)
+                    # print(intersectionFound.mat)
+                    return hc.Intersection(t, n, position, self.materials[0])
+                else :
+                # print("SECOND MATERIAL")
+                # print(intersectionFound.t)
+                # print(intersectionFound.normal)
+                # print(intersectionFound.position)
+                # print(intersectionFound.mat)
+                    return hc.Intersection(t, n, position, self.materials[1])
+            
+            else :
+                if ((truncX % 2 == 0) and (truncZ % 2 == 0)) or ((truncX % 2 != 0) and (truncZ % 2 != 0)):
+                    return hc.Intersection(t, n, position, self.materials[1])
+                else : 
+                    return hc.Intersection(t, n, position, self.materials[0])
+
+
+        else : 
+            # print("ONE MATERIAL")
+            # print(intersectionFound.t)
+            # print(intersectionFound.normal)
+            # print(intersectionFound.position)
+            # print(intersectionFound.mat)
+            return hc.Intersection(t, n, position, self.materials[0])
+
+
 
 class AABB(Geometry):
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], minpos: glm.vec3, maxpos: glm.vec3):
