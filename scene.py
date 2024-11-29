@@ -47,7 +47,7 @@ class Scene:
         w = glm.normalize(cam_dir)
         u = glm.cross(self.up, w)
         u = glm.normalize(u)
-        v = glm.cross(w, u)
+        vUnitVector = glm.cross(w, u)
 
         for col in tqdm(range(self.width)):
             for row in range(self.height):
@@ -63,7 +63,7 @@ class Scene:
                 # print("pixelY : ", pixelY)
 
                 # Calculating the position in 3D of the pixel (in camera coordinates)
-                s = e + pixelX * u + pixelY * v - distance_to_plane * w
+                s = e + pixelX * u + -pixelY * vUnitVector - distance_to_plane * w
                 p = e
                 d = s - e   # goes from the eye to the pixel
                 d = glm.normalize(d)    # normalizing the direction vector
@@ -76,23 +76,15 @@ class Scene:
 
                 for obj in self.objects : 
                     intersection = obj.intersect(r, hc.Intersection(float("inf"), None, (0,0,0), None))
-                    
-                    # print(intersection.t)
-                    # print(intersection.normal)
-                    # print(intersection.position)
-                    # print(intersection.mat)
-                    
+
                     # Comment this??
                     if intersection.position != None :  # if there's an intersection found
-                        colour = glm.vec3(1, 1, 1)  # color = white
+                        # colour = glm.vec3(1, 1, 1)  # color = white
 
                         # TODO: Perform shading computations on the intersection point
                         n = intersection.normal
                         curPixel = intersection.position
                         material = intersection.mat
-
-                        print()
-                        print("curPixel : ", curPixel)
 
                         # Attenuate the light intensity if it's a point light
                         for light in self.lights : 
@@ -110,8 +102,8 @@ class Scene:
                         
 
                         ambientLight = self.ambient
-                        print("I : ", I)
-                        print("ambientLight : " , ambientLight) # ambientLight :  vec3(          0.1,          0.1,          0.1 )
+                        # print("I : ", I)
+                        # print("ambientLight : " , ambientLight) # ambientLight :  vec3(          0.1,          0.1,          0.1 )
                         
                         v = self.eye_position - curPixel    # from the current pixel towards the camera
                         v = glm.normalize(v)
@@ -125,28 +117,27 @@ class Scene:
                         k_d = material.diffuse
                         diffuseLight = k_d * I * max(0, glm.dot(n, l)) 
                         # print("k_d : ", k_d)    # k_d :  vec3( 1, 0, 0 )
-                        print()
-                        print("n : ", n)
-                        print("l : ", l)
-                        print("glm.dot(n, l): ", glm.dot(n, l))
-                        print("diffuseLight : ", diffuseLight)  # diffuseLight :  vec3(            0,            0,            0 )
-
-                        # k_d * diffuseI is component wise multiplication
+                        # print()
+                        # print("n : ", n)
+                        # print("l : ", l)
+                        # print("glm.dot(n, l): ", glm.dot(n, l))
+                        # print("diffuseLight : ", diffuseLight)  # diffuseLight :  vec3(            0,            0,            0)
 
                         # Calculating the Blinn-Phong specular shading
                         p_exponent = material.shininess # 32
                         k_s = material.specular
                         h = (v + l) / np.linalg.norm(v + l)     # this is the bissector between v and l
                         blinnPhongLight = k_s * I * max(0, glm.dot(n, h))** p_exponent
-                        print()
-                        print("n : ", n)
-                        print("h : ", h)
-                        print("glm.dot(n, h): ", glm.dot(n, h))
-                        print("k_s : ", k_s)    # k_s :  vec3(          0.8,          0.8,          0.8 )
-                        print("blinnPhongLight : ", blinnPhongLight)    # blinnPhongLight :  vec3(            0,            0,            0 )
-
+                        
+                        # print()
+                        # print("n : ", n)
+                        # print("h : ", h)
+                        # print("glm.dot(n, h): ", glm.dot(n, h))
+                        # print("k_s : ", k_s)    # k_s :  vec3(          0.8,          0.8,          0.8 )
+                        # print("blinnPhongLight : ", blinnPhongLight)    # blinnPhongLight :  vec3(            0,            0,            0 ) 
+                        
                         colour = ambientLight + diffuseLight + blinnPhongLight
-                        print("colour : ", colour)  # colour :  vec3(          0.1,          0.1,          0.1 ) --> only ambient
+                        # print("colour : ", colour)  # colour :  vec3(          0.1,          0.1,          0.1 ) --> only ambient
 
                     else : 
                         # colour = glm.vec3(0, 0, 0)  # color = black
