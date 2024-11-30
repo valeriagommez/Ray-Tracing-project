@@ -1,180 +1,211 @@
-import helperclasses as hc
+import math
 import glm
-import igl
+import numpy as np
+import geometry as geom
+import helperclasses as hc
+from tqdm import tqdm
 
-class Geometry:
-    def __init__(self, name: str, gtype: str, materials: list[hc.Material]):
-        self.name = name
-        self.gtype = gtype
-        self.materials = materials
+class Scene:
 
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        return intersect
+    def __init__(self,
+                 width: int,
+                 height: int,
+                 jitter: bool,
+                 samples: int,
+                 eye_position: glm.vec3,
+                 lookat: glm.vec3,
+                 up: glm.vec3,
+                 fov: float,
+                 ambient: glm.vec3,
+                 lights: list[hc.Light],
+                 objects: list[geom.Geometry]
+                 ):
+        self.width = width  # width of image
+        self.height = height  # height of image
+        self.aspect = width / height  # aspect ratio
+        self.jitter = jitter  # should rays be jittered
+        self.samples = samples  # number of rays per pixel
+        self.eye_position = eye_position  # camera position in 3D
+        self.lookat = lookat  # camera look at vector
+        self.up = up  # camera up position
+        self.fov = fov  # camera field of view
+        self.ambient = ambient  # ambient lighting
+        self.lights = lights  # all lights in the scene
+        self.objects = objects  # all objects in the scene
 
-class Sphere(Geometry):
-    def __init__(self, name: str, gtype: str, materials: list[hc.Material], center: glm.vec3, radius: float):
-        super().__init__(name, gtype, materials)
-        self.center = center
-        self.radius = radius
+    def render(self):
 
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
+        image = np.zeros((self.height, self.width, 3)) # image with row,col indices and 3 channels, origin is top left
 
-        # TODO: Create intersect code for Sphere
-        # Find t
-        # p = ray.origin
-        # d = ray.direction
-        # a = glm.dot(d, d)
-        # b = 2 * glm.dot(d, p)
-        # c = glm.dot(p, p) - self.radius * self.radius
+        cam_dir = self.eye_position - self.lookat
+        distance_to_plane = 1.0
+        top = distance_to_plane * math.tan(0.5 * math.pi * self.fov / 180)
+        right = self.aspect * top
+        bottom = -top
+        left = -right
 
-        p = ray.origin - self.center  # Vector from sphere center to ray origin
-        d = ray.direction             # Ray direction (assumed normalized or normalize it)
+        w = glm.normalize(cam_dir)
+        u = glm.cross(self.up, w)
+        u = glm.normalize(u)
+        vUnitVector = glm.cross(w, u)
 
-        a = glm.dot(d, d)             
-        b = 2 * glm.dot(d, p)         
-        c = glm.dot(p, p) - self.radius * self.radius  # Sphere equation
+        for col in tqdm(range(self.width)):
+            for row in range(self.height):
 
-        discriminant = b*b - 4 * a * c
+                # print("\nSTART OF RAY : ")
 
-        # print(f"self.center : {self.center}")
-        # print(f"Ray Origin (p) : {p}")
-        # print(f"Ray Direction (d) : {d}")
-        # print(f"a : {a}")
-        # print(f"b : {b}")
-        # print(f"c : {c}")
-        # print("discriminant : ", discriminant)
+                # TODO: Generate rays
+                e = self.eye_position
 
-        if discriminant < 0 :
-            return hc.Intersection(float("inf"), None, None, None)
-    
-        t1 = (-b + glm.sqrt(discriminant)) / (2*a)
-        t2 = (-b - glm.sqrt(discriminant)) / (2*a)
+                # Calculating the position in 2D of the pixel 
+                pixelX = ((col + 0.5)/self.width) * (right - left) + left
+                pixelY = ((row + 0.5)/self.height) * (top - bottom) + bottom
 
-        # print("t1 : ", t1)
-        # print("t2 : ",t2)
+                # Calculating the position in 3D of the pixel (in camera coordinates)
+                s = e + pixelX * u + -pixelY * vUnitVector - distance_to_plane * w
+                p = e
+                d = s - e   # goes from the eye to the pixel
+                d = glm.normalize(d)    # normalizing the direction vector
+                r = hc.Ray(p, d)
 
-        if t1 > 0 and t2 > 0 :
-            t = min(t1, t2)
-        elif t1 > 0 : 
-            t = t1
-            # print("t1 was chosen!")
-        elif t2 > 0 : 
-            t = t2
-            # print("t2 was chosen!")
-        else : 
-            return hc.Intersection(float("inf"), None, None, None)
+                # print("p0 of ray : ", p)
+                # print("direction of ray : ", d)
 
-        # print("t : ", t)
+                # TODO: Test for intersection with all objects
 
-        # Find the position of the intersection
-        position = p + t * d
-        
-        # Find the normal (n)
-        n = glm.normalize(position - self.center) # The normal equals to the vector from the origin to the point of intersection
-        
-        # Find the material of the object at that position
-        return hc.Intersection(t1, n, position, self.materials[0])
+                intersection = hc.Intersection(float("inf"), None, None, None)
+                closest_t = float("inf")
+                objectRendered = None
 
-class Plane(Geometry):
-    def __init__(self, name: str, gtype: str, materials: list[hc.Material], point: glm.vec3, normal: glm.vec3):
-        super().__init__(name, gtype, materials)
-        self.point = point
-        self.normal = normal
+                for sceneObject in self.objects : 
+                    # print(obj.name)
+                    curIntersection = sceneObject.intersect(r, hc.Intersection(float("inf"), None, None, None))
+                    # print("curIntersection.t : ", curIntersection.t)
+                    # print("curIntersection.n : ", curIntersection.normal)
+                    
+                    if curIntersection.t < closest_t :
+                        closest_t = curIntersection.t
+                        # print("closest_t : ", closest_t)
+                        intersection = curIntersection
+                        objectRendered = sceneObject
+                        # print(obj.name, "was chosen to be rendered!") 
 
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        # TODO: Create intersect code for Plane
+                    # Comment this??
+                if intersection.position != None :  # if there's an intersection found
 
-        p = ray.origin                # Vector from sphere center to ray origin
-        d = ray.direction             # Ray direction (assumed normalized or normalize it)
+                    # TODO: Perform shading computations on the closest intersection point
+                    n = intersection.normal
+                    curPixel = intersection.position
+                    material = intersection.mat
 
-        p0 = self.point
-        n = self.normal
+                    v = self.eye_position - curPixel    # from the current pixel towards the camera
+                    v = glm.normalize(v)
 
-        A = n[0]
-        B = n[1]
-        C = n[2]
-        D = -( A*p0[0] + B*p0[1] + C*p0[2])
+                    ambientLight = glm.vec3(0, 0, 0)
+                    diffuseLight = glm.vec3(0, 0, 0)
+                    blinnPhongLight = glm.vec3(0, 0, 0)
 
-        # print()
-        # print("A : ", A)
-        # print("B : ", B)
-        # print("C : ", C)
-        # print("D : ", D)
-        
-        denominator = A*d[0] + B*d[1] + C*d[2]
+                    colour = glm.vec3(1, 1, 1)  # color = white IF there are intersections found
 
-        if denominator == 0  :
-            return hc.Intersection(float("inf"), None, None, None)
+                    for light in self.lights : 
+                        # print("\nlight.name: ", light.name)
 
-        t = -(A*p[0] + B*p[1] + C*p[2] + D) / denominator
+                        lightPosition = light.vector
 
-        if t < 0 : 
-            return hc.Intersection(float("inf"), None, None, None)
-        
-        position = p + t * d
+                        if light.type == "point" :  # Attenuate the light intensity if it's a point light
+                            distance = np.linalg.norm(lightPosition - curPixel) 
+                            k_c = light.attenuation[2]
+                            k_l = light.attenuation[1]
+                            k_q = light.attenuation[0]
+                            # print("attenuation : ", light.attenuation)
+                            # print(k_c)
+                            # print(k_l)
+                            # print(k_q)
 
-        # print("t : ", t)
-        # print("position : ", position)
+                            attenuationFactor = 1 / (k_c + k_l * distance + k_q * distance * distance)
 
-        if len(self.materials) == 2 :
-            # print("TWO MATERIALS")
-            truncX = int(position[0])
-            truncZ = int(position[2])
-            # print("truncX : ", truncX)
-            # print("truncZ : ", truncZ)
+                            I = attenuationFactor * light.colour 
+                            I[0] = max(0.0, min(1.0, I[0]))
+                            I[1] = max(0.0, min(1.0, I[1]))
+                            I[2] = max(0.0, min(1.0, I[2]))
 
-            if ((position[0] > 0) and (position[2] > 0)) or ((position[0] < 0) and (position[2] < 0)) :
-                if ((truncX % 2 == 0) and (truncZ % 2 == 0)) or ((truncX % 2 != 0) and (truncZ % 2 != 0)):
-                    return hc.Intersection(t, n, position, self.materials[0])
-                else :
-                    return hc.Intersection(t, n, position, self.materials[1])
-            
-            else :
-                if ((truncX % 2 == 0) and (truncZ % 2 == 0)) or ((truncX % 2 != 0) and (truncZ % 2 != 0)):
-                    return hc.Intersection(t, n, position, self.materials[1])
+                        else : 
+                            I = light.colour # --> a vector with RGB components
+
+                        l = lightPosition - curPixel    # light ray from pixel to light source
+                        l = glm.normalize(l)
+                        # print("l : ", l)
+
+                        # Doing the shadow rays : 
+
+                        dirToLight = glm.normalize(lightPosition - curPixel)
+                        shadowRay = hc.Ray(curPixel + 0.01 * n , dirToLight)    # adding a bit of offset
+                        inShadow = False
+
+                        for obj in self.objects:
+                            if (obj.name != 'plane') : 
+                                shadowIntersect = obj.intersect(shadowRay, hc.Intersection(float("inf"), None, None, None))
+                                # print("objectRendered :", objectRendered.name)
+                                # print("obj :", obj.name)
+                                if (shadowIntersect.position != None) :   
+                                    print(objectRendered.name, "collided with ", obj.name, "when reaching", light.name)
+                                    # print("inShadow!")
+                                    # If an interception is found AND we're not intercepting our own object
+                                    inShadow = True
+                        
+                        if not inShadow :
+                        # Calculating the Lambertian diffuse shading
+                            k_d = material.diffuse
+                            # if objectRendered.name != 'plane' : 
+                            #     print("Material Diffuse (k_d):", k_d)
+                            #     print("Light Intensity (I):", I)
+                            #     print("Dot product (n·l):", max(0, glm.dot(n, l)))
+                            #     print("Diffuse Contribution:", k_d * I * max(0, glm.dot(n, l)))
+
+                            # Add the diffuse contribution to the total
+                            diffuseLight = diffuseLight + k_d * I * max(0, glm.dot(n, l))
+                            # print("Accumulated Diffuse Light:", diffuseLight)
+
+                            # Calculating the Blinn-Phong specular shading
+                            p_exponent = material.shininess 
+                            k_s = material.specular
+                            h = (v + l) / np.linalg.norm(v + l)     # this is the bissector between v and l
+
+                            # if objectRendered.name != 'plane' : 
+                            #     print("Material Shininess (p_exponent):", p_exponent)
+                            #     print("Material Specular (k_s):", k_s)
+                            #     print("Intensity (I):", I)
+                            #     print("View Vector (v):", v)
+                            #     print("Light Vector (l):", l)
+                            #     print("Halfway Vector (h):", h)
+                            #     print("Dot product (n·h):", max(0, glm.dot(n, h)))
+                            #     print("Specular Contribution:", k_s * I * math.pow(max(0, glm.dot(n, h)), p_exponent))
+
+                            blinnPhongLight = blinnPhongLight + k_s * I * math.pow(max(0, glm.dot(n, h)), p_exponent)
+                            # print("Accumulated Blinn-Phong Light:", blinnPhongLight)
+
+                            ambientLight = ambientLight + self.ambient * material.diffuse
+
+                        # print("blinnPhongLight : " , blinnPhongLight)
+                        # print("diffuseLight : ", diffuseLight)
+
+                    colour = ambientLight + diffuseLight + blinnPhongLight
+                     
+                    print(objectRendered.name)
+                    print(colour)
+
                 else : 
-                    return hc.Intersection(t, n, position, self.materials[0])
+                    colour = glm.vec3(0, 0, 0)  # color = black 
+                    
+                image[row, col, 0] = max(0.0, min(1.0, colour.x))
+                image[row, col, 1] = max(0.0, min(1.0, colour.y))
+                image[row, col, 2] = max(0.0, min(1.0, colour.z))
+                    
+                if objectRendered != None : 
+                    print(objectRendered.name)
+                    print(image[row, col, 0])
+                    print(image[row, col, 1])
+                    print(image[row, col, 2])
+                    print()
 
-
-        else : 
-            return hc.Intersection(t, n, position, self.materials[0])
-
-
-
-class AABB(Geometry):
-    def __init__(self, name: str, gtype: str, materials: list[hc.Material], minpos: glm.vec3, maxpos: glm.vec3):
-        # dimension holds information for length of each size of the box
-        super().__init__(name, gtype, materials)
-        self.minpos = minpos
-        self.maxpos = maxpos
-
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        pass
-        # TODO: Create intersect code for Cube
-
-class Mesh(Geometry):
-    def __init__(self, name: str, gtype: str, materials: list[hc.Material], translate: glm.vec3, scale: float,
-                 filepath: str):
-        super().__init__(name, gtype, materials)
-        verts, _, norms, self.faces, _, _ = igl.read_obj(filepath)
-        self.verts = []
-        self.norms = []
-        for v in verts:
-            self.verts.append((glm.vec3(v[0], v[1], v[2]) + translate) * scale)
-        for n in norms:
-            self.norms.append(glm.vec3(n[0], n[1], n[2]))
-
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        pass
-        # TODO: Create intersect code for Mesh
-
-class Node(Geometry):
-    def __init__(self, name: str, gtype: str, M: glm.mat4, materials: list[hc.Material]):
-        super().__init__(name, gtype, materials)        
-        self.children: list[Geometry] = []
-        self.M = M
-        self.Minv = glm.inverse(M)
-
-    def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        pass
-        # TODO: Create intersect code for Node
+        return image
