@@ -52,6 +52,8 @@ class Scene:
         for col in tqdm(range(self.width)):
             for row in range(self.height):
 
+                print("\nSTART OF RAY : ")
+
                 # R = 0
                 # G = 0
                 # B = 0
@@ -73,6 +75,9 @@ class Scene:
                 d = glm.normalize(d)    # normalizing the direction vector
                 r = hc.Ray(p, d)
 
+                print("p0 of ray : ", p)
+                print("direction of ray : ", d)
+
                 # TODO: Test for intersection with all objects
 
                 # print(r.origin)
@@ -85,18 +90,20 @@ class Scene:
                 for obj in self.objects : 
                     print(obj.name)
                     curIntersection = obj.intersect(r, hc.Intersection(float("inf"), None, None, None))
-
+                    print("curIntersection.t : ", curIntersection.t)
+                    print("curIntersection.n : ", curIntersection.normal)
+                    
                     if curIntersection.t < closest_t :
+                        closest_t = curIntersection.t
+                        print("closest_t : ", closest_t)
                         intersection = curIntersection
                         objectRendered = obj
+                        print(obj.name, "was chosen to be rendered!") 
+
+                print("position in 3d of current pixel : ", intersection.position)
 
                     # Comment this??
                 if intersection.position != None :  # if there's an intersection found
-                    # print()
-                    # print(obj.name) # prints out plane --> plane intersections are being registered
-                    # print(intersection.position)
-
-                    # colour = glm.vec3(1, 1, 1)  # color = white
 
                     # TODO: Perform shading computations on the closest intersection point
                     n = intersection.normal
@@ -125,45 +132,21 @@ class Scene:
                         else : 
                             I = light.colour # --> a vector with RGB components
 
-
                         l = lightPosition - curPixel    # light ray from pixel to light source
                         l = glm.normalize(l)
                         # print("l : ", l)
-                
-                        # print("I : ", I)
-                        # print("ambientLight : " , ambientLight) # ambientLight :  vec3(          0.1,          0.1,          0.1 )
-
+            
                         # Calculating the Lambertian diffuse shading
                         k_d = material.diffuse
-                        diffuseLight = diffuseLight + k_d * I * max(0, glm.dot(n, l)) 
-                        # print("k_d : ", k_d)    # k_d :  vec3( 1, 0, 0 )
-                        # print()
-                        # print("n : ", n)
-                        # print("l : ", l)
-                        # print("glm.dot(n, l): ", glm.dot(n, l))
-                        # print("diffuseLight : ", diffuseLight)  # diffuseLight :  vec3(            0,            0,            0)
+                        diffuseLight = diffuseLight + k_d * I * max(0, glm.dot(n, l))
 
                         # Calculating the Blinn-Phong specular shading
                         p_exponent = material.shininess # 32
                         k_s = material.specular
                         h = (v + l) / np.linalg.norm(v + l)     # this is the bissector between v and l
-                        blinnPhongLight = blinnPhongLight + k_s * I * max(0, glm.dot(n, h))** p_exponent
-                        
-                        # print()
-                        # print("n : ", n)
-                        # print("h : ", h)
-                        # print("glm.dot(n, h): ", glm.dot(n, h)) 
-                        # print("k_s : ", k_s)    # k_s :  vec3(          0.8,          0.8,          0.8 )
-                        # print("blinnPhongLight : ", blinnPhongLight)    # blinnPhongLight :  vec3(            0,            0,            0 ) 
-                        
-                        # colour = ambientLight + diffuseLight + blinnPhongLight
+                        blinnPhongLight = blinnPhongLight + k_s * I * max(0, glm.dot(n, h)) ** p_exponent
+
                     colour = ambientLight + diffuseLight + blinnPhongLight
-                    # print("colour : ", colour)
-                    
-                    # if obj.name == 'plane':
-                    #     print(obj.name)
-                    #     print("colour : ", colour)  # colour :  vec3(          0.1,          0.1,          0.1 ) --> only ambient
-                    #     print("intersection.position : ", intersection.position)
 
                 else : 
                     colour = glm.vec3(0, 0, 0)  # color = black IN PLANE2 : EVERYTHING BUT SPHERE IS SHOWING UP AS BLACK
