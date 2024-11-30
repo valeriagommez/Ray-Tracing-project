@@ -84,8 +84,8 @@ class Plane(Geometry):
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
         # TODO: Create intersect code for Plane
 
-        p = ray.origin                # Vector from sphere center to ray origin
-        d = ray.direction             # Ray direction (assumed normalized or normalize it)
+        p = ray.origin                
+        d = ray.direction             
 
         p0 = self.point
         n = self.normal
@@ -149,8 +149,91 @@ class AABB(Geometry):
         self.maxpos = maxpos
 
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        pass
         # TODO: Create intersect code for Cube
+
+        p = ray.origin                
+        d = ray.direction 
+
+        # Calculate intersection_min and max for each axis
+
+        # For the x axis :
+        xMin = self.minpos[0]
+        xMax = self.maxpos[0]
+
+        tMin_x = (xMin - p[0]) / d[0]
+        tMax_x = (xMax - p[0]) / d[0]
+
+        tLow_x = min(tMin_x, tMax_x)
+        tHigh_x = max(tMin_x, tMax_x)
+
+        # For the y axis : 
+        yMin = self.minpos[1]
+        yMax = self.maxpos[1]
+
+        tMin_y = (yMin - p[1]) / d[1]
+        tMax_y = (yMax - p[1]) / d[1]
+
+        tLow_y = min(tMin_y, tMax_y)
+        tHigh_y = max(tMin_y, tMax_y)
+
+        # For the z axis : 
+        zMin = self.minpos[2]
+        zMax = self.maxpos[2]
+
+        tMin_z = (zMin - p[2]) / d[2]
+        tMax_z = (zMax - p[2]) / d[2]
+
+        tLow_z = min(tMin_z, tMax_z)
+        tHigh_z = max(tMin_z, tMax_z)
+
+        # For all axis combined
+        tMin = min(tLow_x, tLow_y, tLow_z)
+        tMax = max(tHigh_x, tHigh_y, tHigh_z)
+
+        if (tMin > tMax) :
+            return hc.Intersection(float("inf"), None, None, None)
+        
+        if (tMin < 0) : 
+            return hc.Intersection(float("inf"), None, None, None)
+        
+        # Finding intersection position
+        position = ray.getPoint(tMin)
+
+        # Finding the normal of the surface at the intersection
+        if tMin == tLow_x:
+            # Ray intersects the x face (min or max)
+            if d[0] < 0:  # Ray is traveling towards the minimum side
+                n = glm.vec3(1, 0, 0)
+            else:  # Ray is traveling towards the maximum side
+                n = glm.vec3(-1, 0, 0)
+        elif tMin == tLow_y:
+            # Ray intersects the y face (min or max)
+            if d[1] < 0:  # Ray is traveling towards the minimum side
+                n = glm.vec3(0, 1, 0)
+            else:  # Ray is traveling towards the maximum side
+                n = glm.vec3(0, -1, 0)
+        else:
+            # Ray intersects the z face (min or max)
+            if d[2] < 0:  # Ray is traveling towards the minimum side
+                n = glm.vec3(0, 0, 1)
+            else:  # Ray is traveling towards the maximum side
+                n = glm.vec3(0, 0, -1)
+
+        # returning all the values
+        return hc.Intersection(tMin, n, position, self.materials[0])
+
+        # if (tMin == tMin_x) : 
+        #     n = (-1, 0, 0)
+        # elif (tMin == tMax_x) : 
+        #     n = (1, 0, 0)
+        # elif (tMin == tMin_y) : 
+        #     n = (0, -1, 0)
+        # elif (tMin == tMax_y) : 
+        #     n = (0, 1, 0)
+        # elif (tMin == tMin_z) : 
+        #     n = (0, 0, -1)
+        # elif (tMin == tMax_z) : 
+        #     n = (0, 0, 1)
 
 class Mesh(Geometry):
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], translate: glm.vec3, scale: float,
