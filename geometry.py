@@ -27,8 +27,7 @@ class Sphere(Geometry):
         # b = 2 * glm.dot(d, p)
         # c = glm.dot(p, p) - self.radius * self.radius
 
-        # p = ray.origin - self.center  # Vector from sphere center to ray origin
-        p = ray.origin                # Vector from sphere center to ray origin
+        p = ray.origin - self.center  # Vector from sphere center to ray origin
         d = ray.direction             # Ray direction (assumed normalized or normalize it)
 
         a = glm.dot(d, d)             
@@ -104,8 +103,6 @@ class Plane(Geometry):
         
         denominator = A*d[0] + B*d[1] + C*d[2]
 
-        # print("denominator : ", denominator)
-        
         if denominator == 0  :
             return hc.Intersection(float("inf"), None, None, None)
 
@@ -128,18 +125,8 @@ class Plane(Geometry):
 
             if ((position[0] > 0) and (position[2] > 0)) or ((position[0] < 0) and (position[2] < 0)) :
                 if ((truncX % 2 == 0) and (truncZ % 2 == 0)) or ((truncX % 2 != 0) and (truncZ % 2 != 0)):
-                # print("FIRST MATERIAL")
-                    # print(intersectionFound.t)
-                    # print(intersectionFound.normal)
-                    # print(intersectionFound.position)
-                    # print(intersectionFound.mat)
                     return hc.Intersection(t, n, position, self.materials[0])
                 else :
-                # print("SECOND MATERIAL")
-                # print(intersectionFound.t)
-                # print(intersectionFound.normal)
-                # print(intersectionFound.position)
-                # print(intersectionFound.mat)
                     return hc.Intersection(t, n, position, self.materials[1])
             
             else :
@@ -150,11 +137,6 @@ class Plane(Geometry):
 
 
         else : 
-            # print("ONE MATERIAL")
-            # print(intersectionFound.t)
-            # print(intersectionFound.normal)
-            # print(intersectionFound.position)
-            # print(intersectionFound.mat)
             return hc.Intersection(t, n, position, self.materials[0])
 
 
