@@ -187,8 +187,8 @@ class AABB(Geometry):
         tHigh_z = max(tMin_z, tMax_z)
 
         # For all axis combined
-        tMin = min(tLow_x, tLow_y, tLow_z)
-        tMax = max(tHigh_x, tHigh_y, tHigh_z)
+        tMin = max(tLow_x, tLow_y, tLow_z)
+        tMax = min(tHigh_x, tHigh_y, tHigh_z)
 
         if (tMin > tMax) :
             return hc.Intersection(float("inf"), None, None, None)
@@ -232,7 +232,7 @@ class AABB(Geometry):
         #     n = (0, 1, 0)
         # elif (tMin == tMin_z) : 
         #     n = (0, 0, -1)
-        # elif (tMin == tMax_z) : 
+        # elif (tMin == tMax_z) :  
         #     n = (0, 0, 1)
 
 class Mesh(Geometry):
