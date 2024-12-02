@@ -75,6 +75,7 @@ class Sphere(Geometry):
         # Find the material of the object at that position
         return hc.Intersection(t1, n, position, self.materials[0])
 
+
 class Plane(Geometry):
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], point: glm.vec3, normal: glm.vec3):
         super().__init__(name, gtype, materials)
@@ -140,7 +141,6 @@ class Plane(Geometry):
             return hc.Intersection(t, n, position, self.materials[0])
 
 
-
 class AABB(Geometry):
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], minpos: glm.vec3, maxpos: glm.vec3):
         # dimension holds information for length of each size of the box
@@ -150,7 +150,6 @@ class AABB(Geometry):
 
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
         # TODO: Create intersect code for Cube
-
         p = ray.origin                
         d = ray.direction 
 
@@ -201,39 +200,26 @@ class AABB(Geometry):
 
         # Finding the normal of the surface at the intersection
         if tMin == tLow_x:
-            # Ray intersects the x face (min or max)
             if d[0] < 0:  # Ray is traveling towards the minimum side
                 n = glm.vec3(1, 0, 0)
             else:  # Ray is traveling towards the maximum side
                 n = glm.vec3(-1, 0, 0)
+
         elif tMin == tLow_y:
-            # Ray intersects the y face (min or max)
-            if d[1] < 0:  # Ray is traveling towards the minimum side
+            if d[1] < 0: 
                 n = glm.vec3(0, 1, 0)
-            else:  # Ray is traveling towards the maximum side
+            else: 
                 n = glm.vec3(0, -1, 0)
+
         else:
-            # Ray intersects the z face (min or max)
-            if d[2] < 0:  # Ray is traveling towards the minimum side
+            if d[2] < 0: 
                 n = glm.vec3(0, 0, 1)
-            else:  # Ray is traveling towards the maximum side
+            else:
                 n = glm.vec3(0, 0, -1)
 
         # returning all the values
         return hc.Intersection(tMin, n, position, self.materials[0])
-
-        # if (tMin == tMin_x) : 
-        #     n = (-1, 0, 0)
-        # elif (tMin == tMax_x) : 
-        #     n = (1, 0, 0)
-        # elif (tMin == tMin_y) : 
-        #     n = (0, -1, 0)
-        # elif (tMin == tMax_y) : 
-        #     n = (0, 1, 0)
-        # elif (tMin == tMin_z) : 
-        #     n = (0, 0, -1)
-        # elif (tMin == tMax_z) :  
-        #     n = (0, 0, 1)
+ 
 
 class Mesh(Geometry):
     def __init__(self, name: str, gtype: str, materials: list[hc.Material], translate: glm.vec3, scale: float,
@@ -255,9 +241,67 @@ class Node(Geometry):
     def __init__(self, name: str, gtype: str, M: glm.mat4, materials: list[hc.Material]):
         super().__init__(name, gtype, materials)        
         self.children: list[Geometry] = []
-        self.M = M
-        self.Minv = glm.inverse(M)
+        self.M = M  # transformation matrix
+        self.Minv = glm.inverse(M)  # the inverse of the transformation matrix
 
     def intersect(self, ray: hc.Ray, intersect: hc.Intersection):
-        pass
         # TODO: Create intersect code for Node
+
+        p0 = ray.origin     
+        p0_h = glm.vec4(p0, 1.0)  # p0 in homogeneous coordinates
+        d0 = ray.direction 
+
+        print()
+        print("self.M")
+        print(self.M)
+        print("self.Minv")
+        print(self.Minv)
+
+        print("p0 : ", p0)
+        print("d0 : ", d0)
+        
+        closest_t = float("inf")
+        closestIntersection = None
+
+        # Transform the ray using the object's coordinates
+        p1_h = self.Minv @ p0_h   
+        p1 = glm.vec3(p1_h)         # converting back to 3d by taking the first three coordinates  
+
+        d1_h = glm.vec4(d0, 0.0)    # transforming the vector to homogeneous coordinates (w = 0)
+        d1 = glm.vec3(self.Minv @ d1_h) # converting back into 3d coordinates
+
+        rayTransformed = hc.Ray(p1, d1)
+
+        for child in self.children : 
+            print(child.gtype)
+
+        for child in self.children : 
+            curIntersection = child.intersect(rayTransformed, hc.Intersection(float("inf"), None, None, None))
+
+            if curIntersection.t < closest_t :
+                closest_t = curIntersection.t
+                closestIntersection = curIntersection
+            
+
+        if closestIntersection == None :
+            return hc.Intersection(float("inf"), None, None, None)
+
+        # n = closestIntersection.normal @ glm.transpose(self.Minv)
+
+        n_h = glm.vec4(closestIntersection.normal, 0.0)  # Convert normal to homogeneous with w = 0.0
+        transformed_n_h = glm.transpose(self.Minv) @ n_h  # Transform using the transpose of the inverse matrix
+        n = glm.normalize(glm.vec3(transformed_n_h))  # Convert back to vec3 and normalize
+        
+        position_h = glm.vec4(closestIntersection.position, 0.0) @ self.M
+        position = glm.vec3(position_h)
+
+        if closestIntersection.mat == None:
+                nodeMaterial = self.materials[0]
+                closestIntersection.mat = nodeMaterial
+
+        return hc.Intersection(closestIntersection.t, n, position, closestIntersection.mat)
+
+
+
+
+
