@@ -56,21 +56,25 @@ class Scene:
                 e = self.eye_position
 
                 # Calculating the position in 2D of the pixel 
+                # pixelX_Bound = (col/self.width) * (right - left) + left
+                # pixelY_Bound = (row/self.height) * (top - bottom) + left
+
                 pixelX = ((col + 0.5)/self.width) * (right - left) + left
                 pixelY = ((row + 0.5)/self.height) * (top - bottom) + bottom
 
-                numSamples = self.samples
+                subPixel_sizeX = (right - left) / (self.width * self.samples)
+                subPixel_sizeY = (top - bottom) / (self.height * self.samples)
 
-                subPixel_sizeX = (right - left) / (self.width * numSamples)
-                subPixel_sizeY = (top - bottom) / (self.height * numSamples)
+                pixelColor = glm.vec3(0, 0, 0)
 
-                colour = glm.vec3(0, 0, 0)
+                for sub_col in range(self.samples):
+                    for sub_row in range(self.samples):
+                        subpixel_x = left + (col + (sub_col + 0.5) / self.samples) * (right - left) / self.width
+                        subpixel_y = bottom + (row + (sub_row + 0.5) / self.samples) * (top - bottom) / self.height
 
-                for sub_col in range(0, numSamples) :
-                    for sub_row in range(0, numSamples): 
-
-                        subpixel_x = left + (col + (sub_col + 0.5) / numSamples) * subPixel_sizeX
-                        subpixel_y = bottom + (row + (sub_row + 0.5) / numSamples) * subPixel_sizeY
+                        # if self.jitter:
+                        #     subpixel_x += (0.01) * subPixel_sizeX
+                        #     subpixel_y += (0.01) * subPixel_sizeY
 
                         # Calculating the position in 3D of the pixel (in camera coordinates)
                         s = e + subpixel_x * u + -subpixel_y * vUnitVector - distance_to_plane * w
@@ -101,6 +105,8 @@ class Scene:
                             # Comment this??
                         if intersection.position != None :  # if there's an intersection found
 
+                            print("intersection found!")
+
                             # TODO: Perform shading computations on the closest intersection point
                             n = intersection.normal
                             curPixel = intersection.position
@@ -113,7 +119,7 @@ class Scene:
                             diffuseLight = glm.vec3(0, 0, 0)
                             blinnPhongLight = glm.vec3(0, 0, 0)
 
-                            colour = glm.vec3(1, 1, 1)  # color = white IF there are intersections found
+                            subpixelColour = glm.vec3(1, 1, 1)  # color = white IF there are intersections found
 
                             for light in self.lights : 
                                 # print("\nlight.name: ", light.name)
@@ -129,6 +135,9 @@ class Scene:
                                     attenuationFactor = 1 / (k_c + k_l * distance + k_q * distance * distance)
 
                                     I = attenuationFactor * light.colour 
+                                    I[0] = max(0.0, min(1.0, I[0]))
+                                    I[1] = max(0.0, min(1.0, I[1]))
+                                    I[2] = max(0.0, min(1.0, I[2]))
 
                                 else : 
                                     I = light.colour # --> a vector with RGB components
@@ -169,30 +178,25 @@ class Scene:
 
                                     blinnPhongLight = blinnPhongLight + k_s * I * math.pow(max(0, glm.dot(n, h)), p_exponent)
 
-                                    ambientLight = ambientLight + self.ambient * material.diffuse
-
-                            subPixelColour = ambientLight + diffuseLight + blinnPhongLight
+                            ambientLight = ambientLight + self.ambient * material.diffuse
+                            subpixelColour = ambientLight + diffuseLight + blinnPhongLight
                             
                             # print(objectRendered.name)
                             # print("Final colour : ", colour)
                             # print()
 
                         else : 
-                            subPixelColour = glm.vec3(0, 0, 0)  # color = black 
+                            subpixelColour = glm.vec3(0, 0, 0)  # color = black 
                         
-                        colour = colour + subPixelColour
-                
-                pixelColour = colour / (numSamples * numSamples)
-                pixelColour = glm.vec3(
-                    max(0.0, min(1.0, pixelColour.x)),
-                    max(0.0, min(1.0, pixelColour.y)),
-                    max(0.0, min(1.0, pixelColour.z)),
-                )
+                        pixelColor = pixelColor + subpixelColour
+                        print("current Pixel Color : ", pixelColor)
 
-                            
-                image[row, col, 0] = max(0.0, min(1.0, pixelColour.x))
-                image[row, col, 1] = max(0.0, min(1.0, pixelColour.y))
-                image[row, col, 2] = max(0.0, min(1.0, pixelColour.z))
+                pixelColor = pixelColor / (self.samples * self.samples)
+                print("FINAL Pixel Color : ", pixelColor)
+                    
+                image[row, col, 0] = max(0.0, min(1.0, pixelColor.x))
+                image[row, col, 1] = max(0.0, min(1.0, pixelColor.y))
+                image[row, col, 2] = max(0.0, min(1.0, pixelColor.z))
                     
                 # if objectRendered != None : 
                 #     print(objectRendered.name)
